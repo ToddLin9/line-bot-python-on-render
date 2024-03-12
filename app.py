@@ -1,44 +1,42 @@
 from flask import Flask, request, abort
+
 from linebot import (
     LineBotApi, WebhookHandler
 )
 from linebot.exceptions import (
     InvalidSignatureError
 )
-from linebot.models import (
-    MessageEvent, TextMessage, TextSendMessage,
-)
+from linebot.models import *
 
 app = Flask(__name__)
 
-# 用你的Channel access token和Channel secret替换下面的'YourChannelAccessToken'和'YourChannelSecret'
-line_bot_api = LineBotApi('Bj65Ib1yiL/OVq9oLUaJFOoPEUet8E7RAeed9sFuUPPQ/pKw+7q8tNygqcW7OBnSEJ6zbse/UemryALoHaBJDPi8DvE7Jl7ZK7wHImFw92nYP8Uvqx8z1D4lVi76ZXzr/0gm32ZbQMAWEwnYVbt2HgdB04t89/1O/w1cDnyilFU=')
-handler = WebhookHandler('895bc81a30d64c919c1c7c5244a71f1a')
+# Channel Access Token
+line_bot_api = LineBotApi('YOUR_CHANNEL_ACCESS_TOKEN')
+# Channel Secret
+handler = WebhookHandler('YOUR_CHANNEL_SECRET')
 
+# 監聽所有來自 /callback 的 Post Request
 @app.route("/callback", methods=['POST'])
 def callback():
-    # 获取请求头中的X-Line-Signature
+    # get X-Line-Signature header value
     signature = request.headers['X-Line-Signature']
-
-    # 获取请求体
+    # get request body as text
     body = request.get_data(as_text=True)
     app.logger.info("Request body: " + body)
-
-    # 处理Webhook
+    # handle webhook body
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
         abort(400)
-
     return 'OK'
 
+# 處理訊息
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    # 把用户发送的消息回发给他
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text=event.message.text)
-    )
+    message = TextSendMessage(text=event.message.text)
+    line_bot_api.reply_message(event.reply_token, message)
 
+import os
 if __name__ == "__main__":
-    app.run()
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
